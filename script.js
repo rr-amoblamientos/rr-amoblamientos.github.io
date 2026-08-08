@@ -50,8 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 4. CARRUSELES REUTILIZABLES
-    function initCarousel(containerId) {
-        const container = document.getElementById(containerId);
+    function initCarousel(container) {
         if (!container) return;
         
         const slides = container.querySelectorAll('.carousel-slide');
@@ -59,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const nextBtn = container.querySelector('.carousel-next');
         const dotsContainer = container.querySelector('.carousel-dots');
         const currentCounter = container.querySelector('.carousel-current');
+
+        if (!slides.length || !dotsContainer) return;
         
         let currentIndex = 0;
         let autoplayInterval;
@@ -156,14 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
         startAutoplay();
     }
     
-    // Inicializar todos los carruseles
-    initCarousel('carousel-cocinas');
-    initCarousel('carousel-vestidores');
-    initCarousel('carousel-banos');
-    initCarousel('carousel-oficinas');
-    initCarousel('carousel-racks');
+    // Inicializar todos los carruseles que existan en la página automáticamente
+    // (si mañana se agrega una categoría nueva, no hace falta tocar este archivo)
+    document.querySelectorAll('.carousel-container').forEach(initCarousel);
 
-        // =========================================
+    // =========================================
     // 5. LIGHTBOX (visor de fotos ampliado)
     // =========================================
     
@@ -174,93 +172,98 @@ document.addEventListener('DOMContentLoaded', () => {
     const lightboxNext = document.querySelector('.lightbox-next');
     const lightboxCurrent = document.getElementById('lightbox-current');
     const lightboxTotal = document.getElementById('lightbox-total');
-    
-    let lightboxImages = [];
-    let lightboxIndex = 0;
-    
-    // Abrir lightbox al hacer clic en un carrusel
-    const carouselContainers = document.querySelectorAll('.carousel-container');
-    
-    carouselContainers.forEach(container => {
-        const viewport = container.querySelector('.carousel-viewport');
-        if (!viewport) return;
-        
-        viewport.addEventListener('click', () => {
-            // Obtener todas las imágenes de este carrusel
-            const slides = container.querySelectorAll('.carousel-slide img');
-            lightboxImages = Array.from(slides).map(img => img.src);
-            
-            // Obtener el índice actual del carrusel
-            const activeSlide = container.querySelector('.carousel-slide.active');
-            const allSlides = Array.from(container.querySelectorAll('.carousel-slide'));
-            lightboxIndex = allSlides.indexOf(activeSlide);
-            
-            // Mostrar lightbox
-            updateLightbox();
-            lightbox.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Bloquear scroll de fondo
+
+    // Si falta alguna pieza del lightbox en el HTML, no seguimos con esta
+    // sección (evita que un error acá frene el resto del script).
+    if (lightbox && lightboxImg && lightboxClose && lightboxPrev && lightboxNext && lightboxCurrent && lightboxTotal) {
+
+        let lightboxImages = [];
+        let lightboxIndex = 0;
+
+        // Abrir lightbox al hacer clic en un carrusel
+        const carouselContainers = document.querySelectorAll('.carousel-container');
+
+        carouselContainers.forEach(container => {
+            const viewport = container.querySelector('.carousel-viewport');
+            if (!viewport) return;
+
+            viewport.addEventListener('click', () => {
+                // Obtener todas las imágenes de este carrusel
+                const slides = container.querySelectorAll('.carousel-slide img');
+                lightboxImages = Array.from(slides).map(img => img.src);
+
+                // Obtener el índice actual del carrusel
+                const activeSlide = container.querySelector('.carousel-slide.active');
+                const allSlides = Array.from(container.querySelectorAll('.carousel-slide'));
+                lightboxIndex = allSlides.indexOf(activeSlide);
+
+                // Mostrar lightbox
+                updateLightbox();
+                lightbox.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Bloquear scroll de fondo
+            });
         });
-    });
-    
-    function updateLightbox() {
-        lightboxImg.src = lightboxImages[lightboxIndex];
-        lightboxCurrent.textContent = lightboxIndex + 1;
-        lightboxTotal.textContent = lightboxImages.length;
-    }
-    
-    function closeLightbox() {
-        lightbox.classList.remove('active');
-        document.body.style.overflow = ''; // Restaurar scroll
-    }
-    
-    function lightboxNextSlide() {
-        lightboxIndex = (lightboxIndex + 1) % lightboxImages.length;
-        updateLightbox();
-    }
-    
-    function lightboxPrevSlide() {
-        lightboxIndex = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
-        updateLightbox();
-    }
-    
-    // Eventos del lightbox
-    lightboxClose.addEventListener('click', closeLightbox);
-    lightboxNext.addEventListener('click', lightboxNextSlide);
-    lightboxPrev.addEventListener('click', lightboxPrevSlide);
-    
-    // Cerrar al hacer clic fuera de la imagen
-    lightbox.addEventListener('click', (e) => {
-        if (e.target === lightbox) {
-            closeLightbox();
+
+        function updateLightbox() {
+            lightboxImg.src = lightboxImages[lightboxIndex];
+            lightboxCurrent.textContent = lightboxIndex + 1;
+            lightboxTotal.textContent = lightboxImages.length;
         }
-    });
-    
-    // Navegación con teclado
-    document.addEventListener('keydown', (e) => {
-        if (!lightbox.classList.contains('active')) return;
-        
-        if (e.key === 'Escape') closeLightbox();
-        if (e.key === 'ArrowRight') lightboxNextSlide();
-        if (e.key === 'ArrowLeft') lightboxPrevSlide();
-    });
-    
-    // Swipe en el lightbox (móvil)
-    let lbTouchStartX = 0;
-    
-    lightbox.addEventListener('touchstart', (e) => {
-        lbTouchStartX = e.changedTouches[0].screenX;
-    }, { passive: true });
-    
-    lightbox.addEventListener('touchend', (e) => {
-        const lbTouchEndX = e.changedTouches[0].screenX;
-        const diff = lbTouchStartX - lbTouchEndX;
-        
-        if (Math.abs(diff) > 50) {
-            if (diff > 0) {
-                lightboxNextSlide();
-            } else {
-                lightboxPrevSlide();
+
+        function closeLightbox() {
+            lightbox.classList.remove('active');
+            document.body.style.overflow = ''; // Restaurar scroll
+        }
+
+        function lightboxNextSlide() {
+            lightboxIndex = (lightboxIndex + 1) % lightboxImages.length;
+            updateLightbox();
+        }
+
+        function lightboxPrevSlide() {
+            lightboxIndex = (lightboxIndex - 1 + lightboxImages.length) % lightboxImages.length;
+            updateLightbox();
+        }
+
+        // Eventos del lightbox
+        lightboxClose.addEventListener('click', closeLightbox);
+        lightboxNext.addEventListener('click', lightboxNextSlide);
+        lightboxPrev.addEventListener('click', lightboxPrevSlide);
+
+        // Cerrar al hacer clic fuera de la imagen
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) {
+                closeLightbox();
             }
-        }
-    }, { passive: true });
+        });
+
+        // Navegación con teclado
+        document.addEventListener('keydown', (e) => {
+            if (!lightbox.classList.contains('active')) return;
+
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowRight') lightboxNextSlide();
+            if (e.key === 'ArrowLeft') lightboxPrevSlide();
+        });
+
+        // Swipe en el lightbox (móvil)
+        let lbTouchStartX = 0;
+
+        lightbox.addEventListener('touchstart', (e) => {
+            lbTouchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        lightbox.addEventListener('touchend', (e) => {
+            const lbTouchEndX = e.changedTouches[0].screenX;
+            const diff = lbTouchStartX - lbTouchEndX;
+
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) {
+                    lightboxNextSlide();
+                } else {
+                    lightboxPrevSlide();
+                }
+            }
+        }, { passive: true });
+    }
 });
